@@ -324,6 +324,9 @@
         <h2>操作</h2>
         <button class="btn danger" onclick="clearAll()">リセット</button>
         <button class="btn primary" onclick="saveImage()">PNG 保存</button>
+        <button class="btn" onclick="saveData()">データ保存</button>
+        <button class="btn" onclick="document.getElementById('loadInput').click()">データ読み込み</button>
+        <input type="file" id="loadInput" accept=".json" style="display:none" onchange="loadData(this)">
       </div>
     </div>
   </div>
