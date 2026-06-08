@@ -48,12 +48,17 @@
 
   .main-layout {
     display: flex;
-    gap: 20px;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
     width: 100%;
     max-width: 1100px;
+  }
+
+  /* 上段：パネルを横並び */
+  .panel-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
   }
 
   /* ===== コントロールパネル ===== */
@@ -62,7 +67,8 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 20px;
-    width: 230px;
+    flex: 1;
+    min-width: 180px;
     box-shadow: 0 2px 12px var(--shadow);
     display: flex;
     flex-direction: column;
@@ -181,6 +187,12 @@
   }
 
   /* ===== キャンバスエリア ===== */
+  .canvas-outer {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
   .canvas-wrap {
     position: relative;
     border: 1px solid var(--border);
@@ -189,9 +201,37 @@
     overflow: hidden;
     background: #fff;
     cursor: crosshair;
+    flex: 1;
   }
   #canvas {
     display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* 縦ズームスライダー */
+  .zoom-slider-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .zoom-icon { font-size: 1rem; line-height: 1; color: #aaa; cursor: default; user-select: none; }
+  #zoomSlider {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    -webkit-appearance: slider-vertical;
+    appearance: slider-vertical;
+    width: 28px;
+    height: 180px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .zoom-val {
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 0.04em;
   }
 
   /* ステータス */
@@ -212,64 +252,80 @@
 
 <div class="main-layout">
 
-  <!-- パネル -->
-  <div class="panel">
+  <!-- 上段：パネル横並び -->
+  <div class="panel-row">
 
-    <!-- 塗りモード -->
-    <div class="panel-section">
-      <h2>モード</h2>
-      <div class="mode-btns">
-        <button class="mode-btn active" id="modeFill" onclick="setMode('fill')">🎨 塗る</button>
-        <button class="mode-btn" id="modeErase" onclick="setMode('erase')">🧹 消す</button>
+    <!-- 背景色・線スタイル -->
+    <div class="panel">
+      <div class="panel-section">
+        <h2>背景色</h2>
+        <div class="control-row">
+          <label>色</label>
+          <input type="color" id="bgColor" value="#ffffff" onchange="updateBgColor(this.value)">
+        </div>
+      </div>
+      <div class="panel-section">
+        <h2>線のスタイル</h2>
+        <div class="control-row">
+          <label>色</label>
+          <input type="color" id="strokeColor" value="#1a3a6e" onchange="updateStyle()">
+        </div>
+        <div class="control-row">
+          <label>太さ</label>
+          <input type="range" id="strokeWidth" min="0.3" max="4" step="0.1" value="0.8" oninput="updateStyle(); document.getElementById('swVal').textContent=this.value">
+          <span class="range-val" id="swVal">0.8</span>
+        </div>
       </div>
     </div>
 
     <!-- 塗り色 -->
-    <div class="panel-section">
-      <h2>塗り色</h2>
-      <div class="palette-grid" id="palette"></div>
-      <div class="control-row" style="margin-top:10px;">
-        <label>カスタム</label>
-        <input type="color" id="fillColor" value="#f0c040" onchange="setFillColor(this.value)">
+    <div class="panel">
+      <div class="panel-section">
+        <h2>塗り色</h2>
+        <div class="palette-grid" id="palette"></div>
+        <div class="control-row" style="margin-top:10px;">
+          <label>カスタム</label>
+          <input type="color" id="fillColor" value="#f0c040" onchange="setFillColor(this.value)">
+        </div>
       </div>
     </div>
 
-    <!-- 線スタイル -->
-    <div class="panel-section">
-      <h2>線のスタイル</h2>
-      <div class="control-row">
-        <label>色</label>
-        <input type="color" id="strokeColor" value="#1a3a6e" onchange="updateStyle()">
+    <!-- 塗りモード -->
+    <div class="panel">
+      <div class="panel-section">
+        <h2>モード</h2>
+        <div class="mode-btns">
+          <button class="mode-btn active" id="modeFill" onclick="setMode('fill')">🎨 塗る</button>
+          <button class="mode-btn" id="modeErase" onclick="setMode('erase')">🧹 消す</button>
+        </div>
       </div>
-      <div class="control-row">
-        <label>太さ</label>
-        <input type="range" id="strokeWidth" min="0.3" max="4" step="0.1" value="0.8" oninput="updateStyle(); document.getElementById('swVal').textContent=this.value">
-        <span class="range-val" id="swVal">0.8</span>
-      </div>
-    </div>
-
-    <!-- グリッドサイズ -->
-    <div class="panel-section">
-      <h2>グリッドサイズ</h2>
-      <div class="control-row">
-        <label>サイズ</label>
-        <input type="range" id="gridSize" min="30" max="100" step="5" value="55" oninput="redraw(); document.getElementById('gsVal').textContent=this.value+'px'">
-        <span class="range-val" id="gsVal">55px</span>
-      </div>
-    </div>
-
-    <!-- 操作 -->
-    <div class="panel-section">
-      <h2>操作</h2>
-      <button class="btn danger" onclick="clearAll()">リセット</button>
-      <button class="btn primary" onclick="saveImage()">PNG 保存</button>
     </div>
 
   </div>
 
-  <!-- キャンバス -->
-  <div class="canvas-wrap" id="canvasWrap">
-    <canvas id="canvas" width="720" height="540"></canvas>
+  <!-- 下段：キャンバス + ズームスライダー（上段と同幅） -->
+  <div class="canvas-outer">
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="canvas" width="720" height="540"></canvas>
+    </div>
+    <div class="zoom-slider-wrap">
+      <span class="zoom-icon">＋</span>
+      <input type="range" id="zoomSlider" min="40" max="800" step="1" value="100"
+             oninput="onZoomSlider(this.value)">
+      <span class="zoom-icon">－</span>
+      <span class="zoom-val" id="zoomVal">1.0×</span>
+    </div>
+  </div>
+
+  <!-- 操作 -->
+  <div class="panel-row">
+    <div class="panel">
+      <div class="panel-section">
+        <h2>操作</h2>
+        <button class="btn danger" onclick="clearAll()">リセット</button>
+        <button class="btn primary" onclick="saveImage()">PNG 保存</button>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -284,11 +340,25 @@ const ctx = canvas.getContext('2d');
 
 let strokeColor = '#1a3a6e';
 let strokeWidth = 0.8;
-let gridSize = 55;   // 六角形の基本サイズ（辺の長さ相当）
+let gridSize = 35;
 let fillColor = '#f0c040';
-let mode = 'fill';   // 'fill' | 'erase'
-let cellColors = {};  // key: cellId → color
-let isMouseDown = false;
+let mode = 'fill';
+let cellColors = {};
+let bgColor = '#ffffff';
+
+// ズーム・パン状態
+let viewScale = 1.0;
+let viewOffsetX = 0;
+let viewOffsetY = 0;
+const SCALE_MIN = 0.4;
+const SCALE_MAX = 8.0;
+
+// タッチ/マウス状態
+let isPointerDown = false;
+let lastPointerX = 0, lastPointerY = 0;
+let didPan = false;
+// 最後にタップ/クリックした画面座標（ズームの中心点として使用）
+let lastTapSx = 360, lastTapSy = 270;
 
 // ===== パレット =====
 const PALETTE = [
@@ -327,6 +397,11 @@ function setMode(m) {
   mode = m;
   document.getElementById('modeFill').classList.toggle('active', m === 'fill');
   document.getElementById('modeErase').classList.toggle('active', m === 'erase');
+}
+
+function updateBgColor(c) {
+  bgColor = c;
+  redraw();
 }
 
 function updateStyle() {
@@ -372,43 +447,58 @@ function hexVertices(cx, cy, R) {
 }
 
 // 塗り区画の計算
-// 麻の葉を「kite」（凧形）＝ 六角形中心 + 2つの隣接頂点 + 辺の中点 に分解
-// 各 kite は 6 個/六角形
+// 麻の葉の線: 中心→各頂点(6本) + 中心→各辺中点(6本) = 12本の放射線
+// これにより六角形は12個の三角形に分割される
+// 三角形(i*2)  : 中心 - 頂点i    - 辺中点i
+// 三角形(i*2+1): 中心 - 辺中点i  - 頂点(i+1)
 
-function getKites(cx, cy, R) {
+function getTriangles(cx, cy, R) {
   const verts = hexVertices(cx, cy, R);
-  const kites = [];
+  const tris = [];
   for (let i = 0; i < 6; i++) {
     const v0 = verts[i];
     const v1 = verts[(i + 1) % 6];
     const mid = { x: (v0.x + v1.x) / 2, y: (v0.y + v1.y) / 2 };
-    // kite: center, v0, mid, v1 → but for asanoha the lines go from each vertex to center
-    // and from each midpoint of edge to center → creating 6 kites
-    kites.push([
-      { x: cx, y: cy },
-      v0,
-      mid,
-      v1
-    ]);
+    tris.push([{ x: cx, y: cy }, v0, mid]);
+    tris.push([{ x: cx, y: cy }, mid, v1]);
   }
-  return kites;
+  return tris;
 }
 
 // セル識別子
 function kiteId(col, row, k) { return `${col}_${row}_${k}`; }
 
+// 可視グリッド範囲（パン・ズーム後も正確に）
+function getVisibleRange() {
+  const R = gridSize;
+  const corners = [
+    screenToWorld(0, 0), screenToWorld(CANVAS_W, 0),
+    screenToWorld(0, CANVAS_H), screenToWorld(CANVAS_W, CANVAS_H),
+  ];
+  const wx0 = Math.min(...corners.map(c => c.x));
+  const wx1 = Math.max(...corners.map(c => c.x));
+  const wy0 = Math.min(...corners.map(c => c.y));
+  const wy1 = Math.max(...corners.map(c => c.y));
+  const w = R * Math.sqrt(3);
+  const h = R * 1.5;
+  return {
+    colMin: Math.floor(wx0 / w) - 2,
+    colMax: Math.ceil(wx1 / w) + 2,
+    rowMin: Math.floor(wy0 / h) - 2,
+    rowMax: Math.ceil(wy1 / h) + 2,
+  };
+}
+
 // 全セルを取得
 function getAllCells() {
   const R = gridSize;
+  const { colMin, colMax, rowMin, rowMax } = getVisibleRange();
   const cells = [];
-  const cols = Math.ceil(CANVAS_W / (R * Math.sqrt(3))) + 2;
-  const rows = Math.ceil(CANVAS_H / (R * 1.5)) + 2;
-
-  for (let row = -1; row < rows; row++) {
-    for (let col = -1; col < cols; col++) {
+  for (let row = rowMin; row <= rowMax; row++) {
+    for (let col = colMin; col <= colMax; col++) {
       const { x, y } = hexCenter(col, row, R);
-      const kites = getKites(x, y, R);
-      kites.forEach((poly, k) => {
+      const tris = getTriangles(x, y, R);
+      tris.forEach((poly, k) => {
         cells.push({ id: kiteId(col, row, k), poly, col, row, k });
       });
     }
@@ -420,25 +510,29 @@ function getAllCells() {
 let cells = [];
 
 function redraw() {
-  gridSize = parseInt(document.getElementById('gridSize').value);
   ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
   // 背景
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // ビュー変換適用
+  ctx.save();
+  ctx.translate(viewOffsetX, viewOffsetY);
+  ctx.scale(viewScale, viewScale);
 
   cells = getAllCells();
 
   // 塗り
   cells.forEach(cell => {
     const color = cellColors[cell.id];
-    if (color) {
-      fillCell(cell.poly, color);
-    }
+    if (color) fillCell(cell.poly, color);
   });
 
-  // 線
+  // 線（スケールに応じて線幅を補正）
   drawLines();
+
+  ctx.restore();
 }
 
 function fillCell(poly, color) {
@@ -452,16 +546,15 @@ function fillCell(poly, color) {
 
 function drawLines() {
   const R = gridSize;
-  const cols = Math.ceil(CANVAS_W / (R * Math.sqrt(3))) + 2;
-  const rows = Math.ceil(CANVAS_H / (R * 1.5)) + 2;
+  const { colMin, colMax, rowMin, rowMax } = getVisibleRange();
 
   ctx.strokeStyle = strokeColor;
-  ctx.lineWidth = strokeWidth;
+  ctx.lineWidth = strokeWidth / viewScale;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
-  for (let row = -1; row < rows; row++) {
-    for (let col = -1; col < cols; col++) {
+  for (let row = rowMin; row <= rowMax; row++) {
+    for (let col = colMin; col <= colMax; col++) {
       const { x, y } = hexCenter(col, row, R);
       drawAsanohaCell(x, y, R);
     }
@@ -510,13 +603,30 @@ function pointInPoly(px, py, poly) {
   return inside;
 }
 
-function findCell(px, py) {
-  // 近傍のみチェックして高速化
-  return cells.find(c => pointInPoly(px, py, c.poly));
+// ===== 座標変換 =====
+// スクリーン座標 → ワールド座標（ctx変換前の座標系）
+function screenToWorld(sx, sy) {
+  return {
+    x: (sx - viewOffsetX) / viewScale,
+    y: (sy - viewOffsetY) / viewScale,
+  };
 }
 
-function paintAt(px, py) {
-  const cell = findCell(px, py);
+function getScreenPos(e, index = 0) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = CANVAS_W / rect.width;
+  const scaleY = CANVAS_H / rect.height;
+  const src = e.touches ? e.touches[index] : e;
+  return {
+    sx: (src.clientX - rect.left) * scaleX,
+    sy: (src.clientY - rect.top) * scaleY,
+  };
+}
+
+// ===== 塗り =====
+function paintAt(sx, sy) {
+  const { x, y } = screenToWorld(sx, sy);
+  const cell = cells.find(c => pointInPoly(x, y, c.poly));
   if (!cell) return;
   if (mode === 'fill') {
     if (cellColors[cell.id] === fillColor) return;
@@ -528,39 +638,102 @@ function paintAt(px, py) {
   redraw();
 }
 
-// ===== イベント =====
-function getPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = CANVAS_W / rect.width;
-  const scaleY = CANVAS_H / rect.height;
-  if (e.touches) {
-    return {
-      x: (e.touches[0].clientX - rect.left) * scaleX,
-      y: (e.touches[0].clientY - rect.top) * scaleY,
-    };
-  }
-  return {
-    x: (e.clientX - rect.left) * scaleX,
-    y: (e.clientY - rect.top) * scaleY,
-  };
+// ===== ズームスライダー =====
+function onZoomSlider(val) {
+  const newScale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, val / 100));
+  // 最後にタップした点を中心にズーム
+  viewOffsetX = lastTapSx - (lastTapSx - viewOffsetX) * (newScale / viewScale);
+  viewOffsetY = lastTapSy - (lastTapSy - viewOffsetY) * (newScale / viewScale);
+  viewScale = newScale;
+  document.getElementById('zoomVal').textContent = newScale.toFixed(1) + '×';
+  redraw();
 }
 
+// ===== マウスイベント =====
 canvas.addEventListener('mousedown', e => {
-  isMouseDown = true;
-  paintAt(...Object.values(getPos(e)));
+  isPointerDown = true;
+  didPan = false;
+  const { sx, sy } = getScreenPos(e);
+  lastPointerX = sx;
+  lastPointerY = sy;
+  lastTapSx = sx;
+  lastTapSy = sy;
 });
 canvas.addEventListener('mousemove', e => {
-  if (!isMouseDown) return;
-  paintAt(...Object.values(getPos(e)));
+  if (!isPointerDown) return;
+  const { sx, sy } = getScreenPos(e);
+  const dx = sx - lastPointerX, dy = sy - lastPointerY;
+  if (!didPan && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) didPan = true;
+  if (didPan) {
+    viewOffsetX += dx;
+    viewOffsetY += dy;
+    lastPointerX = sx;
+    lastPointerY = sy;
+    redraw();
+  }
 });
-canvas.addEventListener('mouseup', () => isMouseDown = false);
-canvas.addEventListener('mouseleave', () => isMouseDown = false);
-canvas.addEventListener('touchstart', e => { e.preventDefault(); isMouseDown = true; paintAt(...Object.values(getPos(e))); }, { passive: false });
-canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!isMouseDown) return; paintAt(...Object.values(getPos(e))); }, { passive: false });
-canvas.addEventListener('touchend', () => isMouseDown = false);
+canvas.addEventListener('mouseup', e => {
+  if (!didPan) {
+    const { sx, sy } = getScreenPos(e);
+    paintAt(sx, sy);
+  }
+  isPointerDown = false;
+  didPan = false;
+});
+canvas.addEventListener('mouseleave', () => { isPointerDown = false; didPan = false; });
+
+// マウスホイールズーム（最後タップ位置中心）
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.1 : 0.9;
+  const newScale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, viewScale * factor));
+  viewOffsetX = lastTapSx - (lastTapSx - viewOffsetX) * (newScale / viewScale);
+  viewOffsetY = lastTapSy - (lastTapSy - viewOffsetY) * (newScale / viewScale);
+  viewScale = newScale;
+  document.getElementById('zoomSlider').value = Math.round(viewScale * 100);
+  document.getElementById('zoomVal').textContent = viewScale.toFixed(1) + '×';
+  redraw();
+}, { passive: false });
+
+// ===== タッチイベント（ピンチなし・1本指のみ）=====
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    isPointerDown = true;
+    didPan = false;
+    const { sx, sy } = getScreenPos(e);
+    lastPointerX = sx;
+    lastPointerY = sy;
+    lastTapSx = sx;
+    lastTapSy = sy;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (!isPointerDown || e.touches.length !== 1) return;
+  const { sx, sy } = getScreenPos(e);
+  const dx = sx - lastPointerX, dy = sy - lastPointerY;
+  if (!didPan && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) didPan = true;
+  if (didPan) {
+    viewOffsetX += dx;
+    viewOffsetY += dy;
+    lastPointerX = sx;
+    lastPointerY = sy;
+    redraw();
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  if (e.touches.length === 0 && isPointerDown && !didPan) {
+    paintAt(lastPointerX, lastPointerY);
+  }
+  isPointerDown = false;
+  didPan = false;
+}, { passive: false });
 
 function clearAll() {
-  if (!confirm('塗り絵をリセットしますか？')) return;
   cellColors = {};
   redraw();
 }
