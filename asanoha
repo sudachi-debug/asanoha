@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>麻の葉文様 塗り絵</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f4ef;
+    --panel-bg: #ffffff;
+    --text: #2a2a2a;
+    --accent: #1a3a6e;
+    --border: #d8d0c4;
+    --shadow: rgba(0,0,0,0.08);
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'Noto Serif JP', serif;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    gap: 20px;
+  }
+
+  header {
+    text-align: center;
+  }
+  header h1 {
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    color: var(--accent);
+  }
+  header p {
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  .main-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 1100px;
+  }
+
+  /* ===== コントロールパネル ===== */
+  .panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    width: 230px;
+    box-shadow: 0 2px 12px var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .panel-section h2 {
+    font-size: 0.68rem;
+    font-weight: 400;
+    letter-spacing: 0.25em;
+    color: #999;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+  }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .control-row label {
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    color: #555;
+    white-space: nowrap;
+  }
+
+  input[type="color"] {
+    width: 42px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px;
+    cursor: pointer;
+    background: none;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .range-val {
+    font-size: 0.75rem;
+    color: var(--accent);
+    min-width: 28px;
+    text-align: right;
+  }
+
+  /* パレット */
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    margin-top: 4px;
+  }
+  .swatch {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 3px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.1s;
+  }
+  .swatch:hover { transform: scale(1.12); }
+  .swatch.active { border-color: #333; transform: scale(1.12); }
+
+  /* ボタン */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 9px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--panel-bg);
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    margin-bottom: 6px;
+  }
+  .btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { background: #0f2750; }
+  .btn.danger:hover { background: #c0392b; border-color: #c0392b; }
+
+  /* モード切替 */
+  .mode-btns {
+    display: flex;
+    gap: 6px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 7px 4px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--panel-bg);
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    color: #777;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .mode-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  /* ===== キャンバスエリア ===== */
+  .canvas-wrap {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 0 2px 20px var(--shadow);
+    overflow: hidden;
+    background: #fff;
+    cursor: crosshair;
+  }
+  #canvas {
+    display: block;
+  }
+
+  /* ステータス */
+  .status-bar {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    color: #bbb;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>麻の葉文様　塗り絵</h1>
+  <p>ASANOHA PATTERN — COLORING BOOK</p>
+</header>
+
+<div class="main-layout">
+
+  <!-- パネル -->
+  <div class="panel">
+
+    <!-- 塗りモード -->
+    <div class="panel-section">
+      <h2>モード</h2>
+      <div class="mode-btns">
+        <button class="mode-btn active" id="modeFill" onclick="setMode('fill')">🎨 塗る</button>
+        <button class="mode-btn" id="modeErase" onclick="setMode('erase')">🧹 消す</button>
+      </div>
+    </div>
+
+    <!-- 塗り色 -->
+    <div class="panel-section">
+      <h2>塗り色</h2>
+      <div class="palette-grid" id="palette"></div>
+      <div class="control-row" style="margin-top:10px;">
+        <label>カスタム</label>
+        <input type="color" id="fillColor" value="#f0c040" onchange="setFillColor(this.value)">
+      </div>
+    </div>
+
+    <!-- 線スタイル -->
+    <div class="panel-section">
+      <h2>線のスタイル</h2>
+      <div class="control-row">
+        <label>色</label>
+        <input type="color" id="strokeColor" value="#1a3a6e" onchange="updateStyle()">
+      </div>
+      <div class="control-row">
+        <label>太さ</label>
+        <input type="range" id="strokeWidth" min="0.3" max="4" step="0.1" value="0.8" oninput="updateStyle(); document.getElementById('swVal').textContent=this.value">
+        <span class="range-val" id="swVal">0.8</span>
+      </div>
+    </div>
+
+    <!-- グリッドサイズ -->
+    <div class="panel-section">
+      <h2>グリッドサイズ</h2>
+      <div class="control-row">
+        <label>サイズ</label>
+        <input type="range" id="gridSize" min="30" max="100" step="5" value="55" oninput="redraw(); document.getElementById('gsVal').textContent=this.value+'px'">
+        <span class="range-val" id="gsVal">55px</span>
+      </div>
+    </div>
+
+    <!-- 操作 -->
+    <div class="panel-section">
+      <h2>操作</h2>
+      <button class="btn danger" onclick="clearAll()">リセット</button>
+      <button class="btn primary" onclick="saveImage()">PNG 保存</button>
+    </div>
+
+  </div>
+
+  <!-- キャンバス -->
+  <div class="canvas-wrap" id="canvasWrap">
+    <canvas id="canvas" width="720" height="540"></canvas>
+  </div>
+
+</div>
+
+<div class="status-bar" id="statusBar">セルをクリック・ドラッグして色を塗れます</div>
+
+<script>
+// ===== 状態 =====
+const CANVAS_W = 720, CANVAS_H = 540;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let strokeColor = '#1a3a6e';
+let strokeWidth = 0.8;
+let gridSize = 55;   // 六角形の基本サイズ（辺の長さ相当）
+let fillColor = '#f0c040';
+let mode = 'fill';   // 'fill' | 'erase'
+let cellColors = {};  // key: cellId → color
+let isMouseDown = false;
+
+// ===== パレット =====
+const PALETTE = [
+  '#ffffff','#f7f4ef','#fce4b0','#f0c040','#e88020',
+  '#e84040','#c0384c','#a0205c','#7030a0','#3050c8',
+  '#1a3a6e','#0080b0','#20b0a0','#40a040','#80c040',
+  '#c8e060','#ffdd88','#f8b8a0','#e0a0c0','#b0b0b0',
+  '#808080','#404040','#1a1a1a','#8b4513','#d2691e',
+];
+
+function buildPalette() {
+  const g = document.getElementById('palette');
+  g.innerHTML = '';
+  PALETTE.forEach((c, i) => {
+    const s = document.createElement('div');
+    s.className = 'swatch' + (i === 3 ? ' active' : '');
+    s.style.background = c;
+    s.style.border = c === '#ffffff' ? '2px solid #ccc' : '2px solid transparent';
+    s.title = c;
+    s.onclick = () => {
+      document.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+      setFillColor(c);
+    };
+    g.appendChild(s);
+  });
+}
+
+function setFillColor(c) {
+  fillColor = c;
+  document.getElementById('fillColor').value = c;
+  setMode('fill');
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('modeFill').classList.toggle('active', m === 'fill');
+  document.getElementById('modeErase').classList.toggle('active', m === 'erase');
+}
+
+function updateStyle() {
+  strokeColor = document.getElementById('strokeColor').value;
+  strokeWidth = parseFloat(document.getElementById('strokeWidth').value);
+  redraw();
+}
+
+// ===== 麻の葉パターン生成 =====
+// 麻の葉は正六角形を基礎に、六芒星状の線で各セルを区画する
+// ここでは各「花形セル」を塗り絵の単位とする
+// 花形セルは6つの菱形領域（petals）で構成
+
+function getAsanohaLayout(R) {
+  // R = 六角グリッドの外接円半径
+  // 各六角形の中心を格子状に並べる
+  // 麻の葉は正三角形タイリングがベース
+  // セルの種類: hexagon(中央六角形), rhombus(菱形)
+  // ここでは「塗り区画」を菱形 + 小六角形とする
+}
+
+// --- 描画核心 ---
+// 麻の葉の構造:
+//   正六角形を R で定義し、その頂点同士と中心を結ぶことで
+//   6枚の「凧形（kite）」ができる。それが塗り単位。
+//   さらに隣接六角形の間の「斜め菱形」も塗り単位。
+
+function hexCenter(col, row, R) {
+  // flat-top hex grid
+  const w = R * Math.sqrt(3);
+  const h = R * 2;
+  const x = col * w + (row % 2 === 0 ? 0 : w / 2);
+  const y = row * h * 0.75;
+  return { x, y };
+}
+
+function hexVertices(cx, cy, R) {
+  // flat-top: angles 0,60,120,180,240,300 → shifted by 30 → 30,90,150,210,270,330
+  return Array.from({ length: 6 }, (_, i) => {
+    const a = (Math.PI / 180) * (60 * i - 30);
+    return { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) };
+  });
+}
+
+// 塗り区画の計算
+// 麻の葉を「kite」（凧形）＝ 六角形中心 + 2つの隣接頂点 + 辺の中点 に分解
+// 各 kite は 6 個/六角形
+
+function getKites(cx, cy, R) {
+  const verts = hexVertices(cx, cy, R);
+  const kites = [];
+  for (let i = 0; i < 6; i++) {
+    const v0 = verts[i];
+    const v1 = verts[(i + 1) % 6];
+    const mid = { x: (v0.x + v1.x) / 2, y: (v0.y + v1.y) / 2 };
+    // kite: center, v0, mid, v1 → but for asanoha the lines go from each vertex to center
+    // and from each midpoint of edge to center → creating 6 kites
+    kites.push([
+      { x: cx, y: cy },
+      v0,
+      mid,
+      v1
+    ]);
+  }
+  return kites;
+}
+
+// セル識別子
+function kiteId(col, row, k) { return `${col}_${row}_${k}`; }
+
+// 全セルを取得
+function getAllCells() {
+  const R = gridSize;
+  const cells = [];
+  const cols = Math.ceil(CANVAS_W / (R * Math.sqrt(3))) + 2;
+  const rows = Math.ceil(CANVAS_H / (R * 1.5)) + 2;
+
+  for (let row = -1; row < rows; row++) {
+    for (let col = -1; col < cols; col++) {
+      const { x, y } = hexCenter(col, row, R);
+      const kites = getKites(x, y, R);
+      kites.forEach((poly, k) => {
+        cells.push({ id: kiteId(col, row, k), poly, col, row, k });
+      });
+    }
+  }
+  return cells;
+}
+
+// ===== 描画 =====
+let cells = [];
+
+function redraw() {
+  gridSize = parseInt(document.getElementById('gridSize').value);
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // 背景
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  cells = getAllCells();
+
+  // 塗り
+  cells.forEach(cell => {
+    const color = cellColors[cell.id];
+    if (color) {
+      fillCell(cell.poly, color);
+    }
+  });
+
+  // 線
+  drawLines();
+}
+
+function fillCell(poly, color) {
+  ctx.beginPath();
+  ctx.moveTo(poly[0].x, poly[0].y);
+  poly.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function drawLines() {
+  const R = gridSize;
+  const cols = Math.ceil(CANVAS_W / (R * Math.sqrt(3))) + 2;
+  const rows = Math.ceil(CANVAS_H / (R * 1.5)) + 2;
+
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = strokeWidth;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  for (let row = -1; row < rows; row++) {
+    for (let col = -1; col < cols; col++) {
+      const { x, y } = hexCenter(col, row, R);
+      drawAsanohaCell(x, y, R);
+    }
+  }
+}
+
+function drawAsanohaCell(cx, cy, R) {
+  const verts = hexVertices(cx, cy, R);
+
+  // 外周の六角形
+  ctx.beginPath();
+  ctx.moveTo(verts[0].x, verts[0].y);
+  verts.forEach(v => ctx.lineTo(v.x, v.y));
+  ctx.closePath();
+  ctx.stroke();
+
+  // 中心から各頂点へ
+  verts.forEach(v => {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(v.x, v.y);
+    ctx.stroke();
+  });
+
+  // 各辺の中点と中心 (内側の星形)
+  verts.forEach((v0, i) => {
+    const v1 = verts[(i + 1) % 6];
+    const mid = { x: (v0.x + v1.x) / 2, y: (v0.y + v1.y) / 2 };
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(mid.x, mid.y);
+    ctx.stroke();
+  });
+}
+
+// ===== ヒットテスト =====
+function pointInPoly(px, py, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x, yi = poly[i].y;
+    const xj = poly[j].x, yj = poly[j].y;
+    if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function findCell(px, py) {
+  // 近傍のみチェックして高速化
+  return cells.find(c => pointInPoly(px, py, c.poly));
+}
+
+function paintAt(px, py) {
+  const cell = findCell(px, py);
+  if (!cell) return;
+  if (mode === 'fill') {
+    if (cellColors[cell.id] === fillColor) return;
+    cellColors[cell.id] = fillColor;
+  } else {
+    if (!cellColors[cell.id]) return;
+    delete cellColors[cell.id];
+  }
+  redraw();
+}
+
+// ===== イベント =====
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = CANVAS_W / rect.width;
+  const scaleY = CANVAS_H / rect.height;
+  if (e.touches) {
+    return {
+      x: (e.touches[0].clientX - rect.left) * scaleX,
+      y: (e.touches[0].clientY - rect.top) * scaleY,
+    };
+  }
+  return {
+    x: (e.clientX - rect.left) * scaleX,
+    y: (e.clientY - rect.top) * scaleY,
+  };
+}
+
+canvas.addEventListener('mousedown', e => {
+  isMouseDown = true;
+  paintAt(...Object.values(getPos(e)));
+});
+canvas.addEventListener('mousemove', e => {
+  if (!isMouseDown) return;
+  paintAt(...Object.values(getPos(e)));
+});
+canvas.addEventListener('mouseup', () => isMouseDown = false);
+canvas.addEventListener('mouseleave', () => isMouseDown = false);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); isMouseDown = true; paintAt(...Object.values(getPos(e))); }, { passive: false });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!isMouseDown) return; paintAt(...Object.values(getPos(e))); }, { passive: false });
+canvas.addEventListener('touchend', () => isMouseDown = false);
+
+function clearAll() {
+  if (!confirm('塗り絵をリセットしますか？')) return;
+  cellColors = {};
+  redraw();
+}
+
+function saveImage() {
+  const link = document.createElement('a');
+  link.download = '麻の葉塗り絵.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ===== 初期化 =====
+buildPalette();
+redraw();
+</script>
+</body>
+</html>
