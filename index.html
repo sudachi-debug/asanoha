@@ -186,6 +186,53 @@
     border-color: var(--accent);
   }
 
+  /* ===== データモーダル ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--panel-bg);
+    border-radius: 6px;
+    padding: 24px;
+    width: min(90vw, 480px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .modal h3 {
+    font-size: 0.85rem;
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+  }
+  .modal textarea {
+    width: 100%;
+    height: 120px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 8px;
+    font-size: 0.7rem;
+    font-family: monospace;
+    resize: vertical;
+    color: #444;
+  }
+  .modal-note {
+    font-size: 0.7rem;
+    color: #999;
+    letter-spacing: 0.05em;
+    line-height: 1.6;
+  }
+  .modal-btns { display: flex; gap: 8px; }
+  .modal-btns .btn { margin: 0; }
+
   /* ===== キャンバスエリア ===== */
   .canvas-outer {
     display: flex;
@@ -324,9 +371,34 @@
         <h2>操作</h2>
         <button class="btn danger" onclick="clearAll()">リセット</button>
         <button class="btn primary" onclick="saveImage()">PNG 保存</button>
-        <button class="btn" onclick="saveData()">データ保存</button>
-        <button class="btn" onclick="document.getElementById('loadInput').click()">データ読み込み</button>
-        <input type="file" id="loadInput" accept=".json" style="display:none" onchange="loadData(this)">
+        <button class="btn" onclick="openSaveModal()">データ保存</button>
+        <button class="btn" onclick="openLoadModal()">データ読み込み</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- データ保存モーダル -->
+  <div class="modal-overlay" id="saveModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <h3>データ保存</h3>
+      <p class="modal-note">下のテキストを全選択してコピーし、メモ帳などに貼り付けて保存してください。</p>
+      <textarea id="saveText" readonly onclick="this.select()"></textarea>
+      <div class="modal-btns">
+        <button class="btn primary" onclick="copyData()">コピー</button>
+        <button class="btn" onclick="document.getElementById('saveModal').classList.remove('open')">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- データ読み込みモーダル -->
+  <div class="modal-overlay" id="loadModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <h3>データ読み込み</h3>
+      <p class="modal-note">保存したテキストをここに貼り付けて「読み込む」を押してください。</p>
+      <textarea id="loadText" placeholder="ここにデータを貼り付け…"></textarea>
+      <div class="modal-btns">
+        <button class="btn primary" onclick="applyLoadData()">読み込む</button>
+        <button class="btn" onclick="document.getElementById('loadModal').classList.remove('open')">閉じる</button>
       </div>
     </div>
   </div>
@@ -746,6 +818,47 @@ function saveImage() {
   link.download = '麻の葉塗り絵.png';
   link.href = canvas.toDataURL('image/png');
   link.click();
+}
+
+function openSaveModal() {
+  const data = JSON.stringify({ cellColors, gridSize, viewScale, viewOffsetX, viewOffsetY });
+  document.getElementById('saveText').value = data;
+  document.getElementById('saveModal').classList.add('open');
+  // 少し遅らせて全選択
+  setTimeout(() => document.getElementById('saveText').select(), 100);
+}
+
+function copyData() {
+  const ta = document.getElementById('saveText');
+  ta.select();
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(ta.value).then(() => alert('コピーしました'));
+  } else {
+    document.execCommand('copy');
+    alert('コピーしました');
+  }
+}
+
+function openLoadModal() {
+  document.getElementById('loadText').value = '';
+  document.getElementById('loadModal').classList.add('open');
+}
+
+function applyLoadData() {
+  try {
+    const data = JSON.parse(document.getElementById('loadText').value.trim());
+    cellColors = data.cellColors || {};
+    if (data.gridSize) gridSize = data.gridSize;
+    if (data.viewScale) viewScale = data.viewScale;
+    if (data.viewOffsetX !== undefined) viewOffsetX = data.viewOffsetX;
+    if (data.viewOffsetY !== undefined) viewOffsetY = data.viewOffsetY;
+    document.getElementById('zoomSlider').value = Math.round(viewScale * 100);
+    document.getElementById('zoomVal').textContent = viewScale.toFixed(1) + '×';
+    document.getElementById('loadModal').classList.remove('open');
+    redraw();
+  } catch {
+    alert('読み込みに失敗しました。データを確認してください。');
+  }
 }
 
 // ===== 初期化 =====
