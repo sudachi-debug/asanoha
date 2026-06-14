@@ -288,6 +288,13 @@
     color: #bbb;
     text-align: center;
   }
+  .version-bar {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: #ccc;
+    text-align: center;
+    padding-bottom: 8px;
+  }
 </style>
 </head>
 <body>
@@ -364,7 +371,7 @@
   <!-- 下段：キャンバス + ズームスライダー（上段と同幅） -->
   <div class="canvas-outer">
     <div class="canvas-wrap" id="canvasWrap">
-      <canvas id="canvas" width="720" height="540"></canvas>
+      <canvas id="canvas" width="720" height="1080"></canvas>
     </div>
     <div class="zoom-slider-wrap">
       <span class="zoom-icon">＋</span>
@@ -380,10 +387,23 @@
     <div class="panel">
       <div class="panel-section">
         <h2>操作</h2>
-        <button class="btn danger" onclick="clearAll()">リセット</button>
         <button class="btn primary" onclick="saveImage()">PNG 保存</button>
         <button class="btn" onclick="openSaveModal()">データ保存</button>
         <button class="btn" onclick="openLoadModal()">データ読み込み</button>
+        <button class="btn" onclick="undoLast()">↩ 戻る</button>
+        <button class="btn danger" onclick="confirmClearAll()">リセット</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- リセット確認モーダル -->
+  <div class="modal-overlay" id="resetModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <h3>リセット確認</h3>
+      <p class="modal-note">塗り絵データをすべて消去します。この操作は元に戻せません。</p>
+      <div class="modal-btns">
+        <button class="btn danger" onclick="clearAll()">リセットする</button>
+        <button class="btn" onclick="document.getElementById('resetModal').classList.remove('open')">キャンセル</button>
       </div>
     </div>
   </div>
@@ -417,10 +437,11 @@
 </div>
 
 <div class="status-bar" id="statusBar">セルをクリック・ドラッグして色を塗れます</div>
+<div class="version-bar">v1.5.0</div>
 
 <script>
 // ===== 状態 =====
-const CANVAS_W = 720, CANVAS_H = 540;
+const CANVAS_W = 720, CANVAS_H = 1080;
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -432,6 +453,26 @@ let mode = 'fill';
 let cellColors = {};
 let bgColor = '#ffffff';
 let hideSharedLines = false;
+
+// 履歴（戻る用）
+const MAX_HISTORY = 30;
+let history = []; // [{cellColors, lineColors}]
+
+function saveHistory() {
+  history.push({
+    cellColors: { ...cellColors },
+    lineColors: { ...lineColors },
+  });
+  if (history.length > MAX_HISTORY) history.shift();
+}
+
+function undoLast() {
+  if (history.length === 0) return;
+  const prev = history.pop();
+  cellColors = prev.cellColors;
+  lineColors = prev.lineColors;
+  redraw();
+}
 
 // 線塗りモード状態
 let lineColors = {};   // edgeKey → color  辺ごとの色
@@ -820,6 +861,7 @@ function paintAt(sx, sy) {
   const { x, y } = screenToWorld(sx, sy);
   const cell = cells.find(c => pointInPoly(x, y, c.poly));
   if (!cell) return;
+  saveHistory();
   if (mode === 'fill') {
     if (cellColors[cell.id] === fillColor) return;
     cellColors[cell.id] = fillColor;
@@ -917,6 +959,7 @@ function lineTap(sx, sy) {
   } else {
     const path = findLinePath(linePoint1, node);
     const lc = document.getElementById('lineColor').value;
+    saveHistory();
     path.forEach(seg => {
       const ek = makeEdgeKey(seg.ax, seg.ay, seg.bx, seg.by);
       if (lineEraseMode) delete lineColors[ek];
@@ -1001,7 +1044,7 @@ function applyRangeFill() {
   const x1 = Math.max(rangePoint1.x, rangePoint2.x);
   const y0 = Math.min(rangePoint1.y, rangePoint2.y);
   const y1 = Math.max(rangePoint1.y, rangePoint2.y);
-
+  saveHistory();
   cells.forEach(cell => {
     // セルの重心が矩形内なら塗る
     const cx = (cell.poly[0].x + cell.poly[1].x + cell.poly[2].x) / 3;
@@ -1137,7 +1180,13 @@ canvas.addEventListener('touchend', e => {
   didPan = false;
 }, { passive: false });
 
+function confirmClearAll() {
+  document.getElementById('resetModal').classList.add('open');
+}
+
 function clearAll() {
+  document.getElementById('resetModal').classList.remove('open');
+  saveHistory();
   cellColors = {};
   lineColors = {};
   redraw();
